@@ -1,0 +1,147 @@
+2019-06-03
+==========================================================================
+
+Simone has decided function-scope annotations should apply to
+function-scope VarDecls.
+
+This is the EmitAutoVarDecl case in CodeGenFunction/CGDecl. Need to figure
+out what function the VarDecl is in, and EnableInsertHelper if the
+function has an annotation.
+
+UPDATE: done.
+
+2019-05-24
+==========================================================================
+
+- Add support for while/do-while
+- Restructured ForStmt emission to emit larger metadata regions
+  - Unlike before, we're now including the `cond` and `inc` blocks
+
+- Adding support for VarDecls - the work here seems to be needed in CGDecl
+  on CodeGenFunction::{EmitAutoVarDecl,EmitStaticVarDecl}. Unsure
+  currently whether the EmitStaticVarDecl case is usable; why would you
+  annotate the initialization of a global variable?
+  - Do we need to emit metadata for decls at all? We want to be able to
+    describe the metadata properties of *regions*, if we exclude the decls
+    we will be excluding variable allocations from being annotated.
+  - Annotating variable allocations with e.g. independent would seem to
+    imply that the *allocations* are independent, which seems contrary to
+    the obvious - I expect the user would intend to mark the loop *bodies*
+    as independent, not the calls to e.g. calloc/malloc, which may not be
+    parallelizable/reorderable
+
+I am not confident it makes sense to annotate variable allocations in this
+way -- it would seem to imply, to me, that if a region is annotated
+`independent` and we mark the allocation as `independent`, this would mean
+the calls to calloc/malloc are parallelizable/reorderable, but it's not
+clear at all that this would be the user's intent. We could, of course,
+use convention to dictate that e.g. `independent` and `unordered-alloc`
+are different things; or, we could say `independent = iteration,variables`
+to mark both the body and the allocation(s) as independent. It's unclear
+how best to proceed.
+
+I have decided not to implement variable declaration annotations, since
+currently these can only be applied *implicitly*. That is, we don't
+support parsing note-annotations on regular variable declarations (e.g.
+`int x = 0;` etc.), and if we don't support that, then we shouldn't
+annotate variable declarations by side-effect.
+
+2019-05-23
+==========================================================================
+
+Function definitions and declarations can be annotated. If either or both
+are annotated, the bodie(s) of the function will emit metadata for
+(almost) every instruction.
+
+Currently variable declarations (VarDecls) -- and potentially others --
+are not emitting metadata correctly. Additionally, the scope of for-loop
+metadata regions may not be large enough. When there's a "global" (well,
+function-wide) annotation in effect, we don't want the `cond` or `inc`
+blocks of the for-loop to be emitted with *different* metadata than the
+body. So, with this new information, it now seems appropriate to
+restructure ForStmt metadata emission to cover the entire loop (excluding
+initialization) with the appropriate metadata.
+
+2019-05-22
+==========================================================================
+
+Decided to try approaching annotations on Decls using (hopefully) a very
+general-purpose wrapper implemented by abusing
+Parser::ParseTopLevelDecl(...). When a tok::annot_ext_note is detected, we
+parse and save it, and then put it into the ASTContext NoteDSLAnnotations
+after the Declaration has been parsed into a DeclGroupRef result; BUT only
+if the DeclGroupRef refers to the SingleDecl, and only if that Decl passes
+the Decl acceptor from `pragma-note/acceptors.h`.
+
+This approach should allow us to add annotations to any top level
+declarations, including struct/class/enum, using the same code.
+
+Ran into that old bug with redefinitions at link-time -- functions in
+`acceptors.h` need to be static now, they're being included in multiple
+places. It's a hack and it causes the definitions to be duplicated, but it
+works and it's fairly low-cost and enables us to modularize at least some.
+
+FunctionDecls are now being annotated and the annotations are getting
+accepted and stored. Next up is to extend CGDecl to look for
+NoteDSLAnnotations before performing codegen for the function's body, and
+then to enable the insert helper during the emission of the function body.
+
+2019-05-20
+==========================================================================
+
+New tasks from today's meeting:
+
+- Simplify (if possible) to <string, string> key-values in annotations
+- Add annotation support to functions
+- (Low priority) Add annotation support to while/do-while
+
+2019-04-17
+==========================================================================
+
+Bugfix: an unannotated compound statement or for statement could cause the
+surrounding scope's annotation to be dropped. This is fixed with a small
+tweak to the API, so that the InsertHelper is only disabled at the end of
+a statement if that statement had an annotation in the first place.
+
+Rebuilding Clang subsequently took almost 30 minutes. Ugh.
+
+Other than that, most work has continued in the talkdown branch of Noelle.
+The bug was discovered while writing tests to validate the basic-block
+splitting algorithm being used to isolate code regions under a single
+annotation.
+
+2019-03-18
+==========================================================================
+
+Turns out that the Annotation wasn't getting deallocated: it was much more
+fun than that! The build was silently skipping or failing the link step
+for Clang, because of a link-time "undefined reference" bug from codegen
+trying to use the 'construct_metadata' function from the note namespace
+(defined in pragma-note.cpp).
+
+Moving construct_metadata into the codegen module fixes it.
+
+2019-03-15
+==========================================================================
+
+Currently, our Annotation (constructed in note::handle_note) is getting
+deallocated before we get a chance to try to access it later during
+ParseStatementOrDeclarationAfterAttributes in the Parser.
+
+We have no persistent context that lasts beyond the lifetime of our
+PragmaHandler. So, we need to figure out how to keep it alive.
+
+Best guess currently:
+
+Use placement-new to allocate the Annotation using the Preprocessor's own
+BumpPtrAllocator. This will attach the lifetime of the Annotation to the
+lifetime of the Preprocessor, giving us at least enough time to access it
+in the Parser. (See Preprocessor.h#833 for an API to get access to this
+allocator. This is how built-in pragmas defined in ParsePragma.cpp manage
+and persist data.)
+
+[x] Fix the lifetime of the Annotation to the Preprocessor.
+
+QUESTION: why the heck wasn't this a problem before???
+
+Some unknown RAII semantics unintentionally made it work, I guess.

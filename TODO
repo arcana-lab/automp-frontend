@@ -1,0 +1,17 @@
+[ ] Add more tests to the examples/ directory
+[ ] Source-to-source translation from OpenMP CPP to annotated Talkdown CPP
+
+[x] Add & test examples for continue/break (structured loop exits)
+[x] Simplify annotations to `<STRING> = <STRING>`
+[x] Support annotations on more syntax
+  [x] decl: function
+  [x] stmt: while/do-while
+[x] Update syntax to `#pragma note <NAMESPACE> (<STRING> = <INTEGER>)+`
+[x] Support scoped redefinition, per the examples/
+  [x] Create Annotation Stack
+  [x] Push/pop instead of directly setting the active annotation
+[x] Support parsing Annotations out of loops / regions
+  [x] Parse Annotation given an MDNode
+  [-] Find an MDNode given a code region / loop
+    [-] loops: look for the terminatorInst of the loop condition
+    [-] regions: coalesce adjacent instructions of same MDNode
