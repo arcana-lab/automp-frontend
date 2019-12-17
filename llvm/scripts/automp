@@ -1,0 +1,5 @@
+#!/bin/bash -e
+
+installDir
+
+clang -fplugin=${installDir}/lib/pragma-note.so $@ ;
