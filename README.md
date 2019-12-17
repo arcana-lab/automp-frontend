@@ -23,31 +23,21 @@ build with `ninja` instead of `make` for noticeably faster compilation.
 Setting up and Compiling a Patched Clang + Note DSL Plugin
 --------------------------------------------------------------------------
 
-1. Link the plugin into the clang source tree:
+1. Compile the LLVM framework (this includes Clang, the Note DSL plugin, and the rest of the LLVM framework)
 ```
-$ cd llvm-tree/llvm/tools/clang/tools
-$ ln -s $(git rev-parse --show-toplevel)/clang-tools hobbit-tricks
+$ cd llvm
+$ make 
 ```
-2. Make a "dist" directory to hold CMake artifacts
-3. Enter the "dist" directory
-4. Configure CMake and generate build files
-```
-$ cmake -G 'Ninja'             \
-  -DCMAKE_CXX_COMPILER=clang++ \
-  -DLLVM_BUILD_LLVM_DYLIB=ON   \
-  -DLLVM_LINK_LLVM_DYLIB=ON    \
-  ../llvm
-```
-  - To build with make : replace 'Ninja' with 'Unix Makefiles' above
-  - For cquery: `cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ../llvm`
-5. Build everything: `{ninja|make} clang pragma-note`
 
-In the root of the repository, check whether the plugin works:
-
+2. Add what has been just compiled to your environment
 ```
-$ llvm-tree/dist/bin/clang                   \
+$ source llvm/7.0.0/enable
+```
+
+3. In the root of the repository, check whether the plugin works:
+```
+$ automp                   \
   -S -emit-llvm                              \
-  -fplugin=llvm-tree/dist/lib/pragma-note.so \
   hello-note.c
 ```
 
