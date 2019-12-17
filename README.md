@@ -36,9 +36,7 @@ $ source llvm/7.0.0/enable
 
 3. In the root of the repository, check whether the plugin works:
 ```
-$ automp                   \
-  -S -emit-llvm                              \
-  hello-note.c
+$ automp -S -emit-llvm hello-note.c
 ```
 
 You should see some debug output from the plugin in your terminal, and
