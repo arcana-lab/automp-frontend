@@ -1,12 +1,15 @@
 # Derived from the CMakeLists.txt for examples/PrintFunctionNames
 
 # Make this code loadable as a clang plugin
-add_llvm_loadable_module(
+add_llvm_library(
   pragma-note
+
+  MODULE
 
   pragma-note.cpp
 
   PLUGIN_TOOL
+
   clang
 )
 
