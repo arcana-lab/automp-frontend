@@ -147,7 +147,7 @@ namespace note {
    */
   void NotePragmaHandler::HandlePragma (
     clang::Preprocessor & PP,
-    clang::PragmaIntroducerKind, // NOTE(Simone): unused
+    clang::PragmaIntroducer Introducer, // NOTE(Simone): unused
     Token & note_source_token
   ) {
     Token dns_token;
@@ -210,7 +210,7 @@ namespace note {
     print_annotation(*annotation, llvm::outs());
 
     llvm::outs() << "DSL handler appears to have processed tokens!\n";
-    PP.EnterToken(note_token);
+    PP.EnterToken(note_token, false);
     return;
   }
 } // namespace

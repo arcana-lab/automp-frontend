@@ -101,8 +101,9 @@ namespace note {
     NotePragmaHandler() : PragmaHandler("note") { }
     void HandlePragma (
       clang::Preprocessor & PP,
-      clang::PragmaIntroducerKind,
+      clang::PragmaIntroducer Introducer,
       clang::Token & note_source_token
     ) override;
   };
+
 } // namespace note
