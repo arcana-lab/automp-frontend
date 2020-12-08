@@ -25,9 +25,16 @@ installDir="${LLVM_DIR}/release" ;
 
 # Create the vanilla LLVM
 if ! test -d $LLVM_VERSION ; then
+
+  # Fetch the LLVM installer
   git clone https://github.com/scampanoni/LLVM_installer.git $LLVM_VERSION ;
+  cd ${LLVM_VERSION} ;
+  git checkout 0d876be2f90ee7ddfb16c2b131ab2c0e1f94708e ;
+  cd ../ ;
+
+  # Fetch LLVM sources
   cd ${LLVM_DIR} ;
-  make src 
+  make src ;
 fi
 
 # Apply the patch

@@ -31,7 +31,7 @@ $ make
 
 2. Add what has been just compiled to your environment
 ```
-$ source llvm/7.0.0/enable
+$ source llvm/9.0.0/enable
 ```
 
 3. In the root of the repository, check whether the plugin works:
